@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        canvas {
+            border: 1px solid #000;
+            background-color: rgb(60, 88, 214);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="1000" height="570" ></canvas>
+
+    <script>
+        var canvas = document.getElementById("gameCanvas");
+        var context = canvas.getContext("2d");
+  
+        var player = { x: canvas.width / 2, y: canvas.height-100, width: 50, height: 50};
+        var base = { x: canvas.width /2 +200, y: canvas.height - 100, width: 100, height: 80 };
+
+        var inputDir = { x: 0 };
+
+        var projectiles = [];
+        var bots = [];
+        var botProjectiles = [];
+
+        var score = 0;
+        highscoreval = 0;
+        var health = 100;
+        var health1=100;
+        var gameInterval;
+        var botInterval;
+        var projectileInterval;
+        var botProjectileInterval;
+
+        document.addEventListener("keydown", handleKeyDown);
+        document.addEventListener("keyup", handleKeyUp);
+
+        function handleKeyDown(event) {
+            if (event.key === "ArrowLeft") {
+                inputDir.x = -4;
+            } else if (event.key === "ArrowRight") {
+                inputDir.x = 4;
+            } else if (event.key === " ") {
+                addProjectile();
+            }
+        }
+
+        function handleKeyUp(event) {
+            if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                inputDir.x = 0;
+            }
+        }
+
+        function Player() {
+            context.beginPath();
+    const centerX = player.x + player.width / 2;
+    const centerY = player.y + player.height / 2;
+    const radius = Math.min(player.width, player.height) / 2;
+    const rectangleWidth = 20; 
+    const rectangleHeight = 40;
+    const rectangleX = centerX - rectangleWidth / 2;
+    const rectangleY = centerY - radius - rectangleHeight+20;
+    context.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    context.rect(rectangleX, rectangleY, rectangleWidth, rectangleHeight);
+    context.fillStyle = "pink";
+    context.fill();
+    context.closePath();
+
+        }
+
+        function Base() {
+            context.beginPath();
+            context.rect(base.x - base.width / 2, base.y - base.height / 2, base.width, base.height);
+            context.fillStyle = "orange";
+            context.fill();
+            context.closePath();
+        }
+
+        function Projectiles() {
+            for (var i = 0; i < projectiles.length; i++) {
+                var projectile = projectiles[i];
+                context.beginPath();
+                context.arc(projectile.x, projectile.y, 6, 0, 2 * Math.PI);
+                context.fillStyle = "brown";
+                context.fill();
+                context.closePath();
+            }
+        }
+
+        function BotProjectiles() {
+            for (var i = 0; i < botProjectiles.length; i++) {
+                var botProjectile = botProjectiles[i];
+                context.beginPath();
+                context.arc(botProjectile.x, botProjectile.y, 6, 0, 2 * Math.PI);
+                context.fillStyle = "black";
+                context.fill();
+                context.closePath();
+            }
+        }
+
+        function Bots() {
+            for (var i = 0; i < bots.length; i++) {
+                var bot = bots[i];
+                context.beginPath();
+                context.rect(bot.x, bot.y, bot.width, bot.height);
+                context.fillStyle = "black";
+                context.fill();
+                context.closePath();
+            }
+        }
+
+        function collision() {
+            for (var i = 0; i < projectiles.length; i++) {
+                var projectile = projectiles[i];
+                for (var j = 0; j < bots.length; j++) {
+                    var bot = bots[j];
+                    if (
+                        projectile.x >= bot.x &&
+                        projectile.x <= bot.x + bot.width &&
+                        projectile.y >= bot.y &&
+                        projectile.y <= bot.y + bot.height
+                    ) {
+                        score+=10;
+                        projectiles.splice(i, 1);
+                        i--;
+                        bots.splice(j, 1);
+                        break;
+                    }
+                }
+            }
+            if((score>highscoreval)){
+         highscoreval = score;
+         localStorage.setItem("highscore",JSON.stringify(highscoreval))
+        
+     }
+            for (var i = 0; i < bots.length; i++) {
+                var bot = bots[i];
+                if (bot.x >= base.x - base.width / 2 && bot.x <= base.x + base.width / 2 && bot.y >= base.y - base.height / 2 && bot.y <=base.y + base.height / 2) {
+                    bots.splice(i, 1);
+                    i--;
+                    health -= 20;
+                    if (health <= 0) {
+                        endGame();
+                    }
+                   
+                }
+            }
+            for (var i = 0; i <bots.length; i++) {
+                var bot = bots[i];
+                if (bot.x >= player.x  && bot.x <= player.x + player.width&& bot.y <= player.y + player.height &&bot.y >=player.y -40) {
+                    bots.splice(i, 1);
+                      i--;
+                  endGame();
+                  
+                    
+                }
+            }
+            for (var i = 0; i < botProjectiles.length; i++) {
+                var botProjectile = botProjectiles[i];
+                if (
+                    botProjectile.x >= player.x &&
+                    botProjectile.x <= player.x + player.width &&
+                    botProjectile.y >= player.y-40 &&
+                    botProjectile.y <= player.y + player.height
+                ) {
+                    health1 -= 5;
+                    botProjectiles.splice(i, 1);
+                    i--;
+                    if (health1 <= 0) {
+                        endGame();
+                    }
+                } else if (
+                    botProjectile.x >= base.x - base.width / 2 &&
+                    botProjectile.x <= base.x + base.width / 2 &&
+                    botProjectile.y >= base.y - base.height / 2 &&
+                    botProjectile.y <= base.y + base.height / 2
+                ) {
+                    botProjectiles.splice(i, 1);
+                    i--;
+                    health -= 20;
+                    if (health <= 0) {
+                        endGame();
+                    }
+                }
+            }
+        }
+
+        function updatePlayer() {
+            player.x += inputDir.x;
+            if (player.x < 0) {
+                player.x = 0;
+            } else if (player.x + player.width > canvas.width) {
+                player.x = canvas.width - player.width;
+            }
+        }
+
+        function updateProjectiles() {
+            for (var i = 0; i < projectiles.length; i++) {
+                var projectile = projectiles[i];
+                projectile.y -= 10;
+                if (projectile.y < 0) {
+                    projectiles.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        function updateBotProjectiles() {
+            for (var i = 0; i < botProjectiles.length; i++) {
+                var botProjectile = botProjectiles[i];
+                botProjectile.y += 4;
+                if (botProjectile.y > canvas.height) {
+                    botProjectiles.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        function updateBots() {
+            for (var i = 0; i < bots.length; i++) {
+                var bot = bots[i];
+                bot.y += 2;
+                if (Math.random() < 0.02) {
+                    botProjectiles.push({
+                        x: bot.x + bot.width / 2,
+                        y: bot.y + bot.height,
+                    });
+                }
+                if (bot.y > canvas.height) {
+                    bots.splice(i, 1);
+                    i--;
+                   
+                }
+            }
+        }
+
+      
+        function Score() {
+            context.font = "16px Arial";
+            context.fillStyle = "black";
+            context.fillText("Score: " + score, 8, 20);
+        }
+        function HighScore() {
+            context.font = "16px Arial";
+            context.fillStyle = "black";
+            context.fillText("HighScore: " + highscoreval, 8, 40);
+        }
+    
+
+        function BaseHealth() {
+            context.font = "16px Arial";
+            context.fillStyle = "black";
+            context.fillText("Base Health: " + health, canvas.width -150, 50);
+        }
+        function PlayerHealth() {
+            context.font = "16px Arial";
+            context.fillStyle = "black";
+            context.fillText("player Health: " + health1, canvas.width -150, 80);
+        }
+
+
+        function draw() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            Player();
+            Base();
+            Projectiles();
+            BotProjectiles();
+           Bots();
+            Score();
+            HighScore();
+            BaseHealth();
+            PlayerHealth();
+            collision();
+            updatePlayer();
+            updateProjectiles();
+            updateBotProjectiles();
+            updateBots();
+        }
+
+        function startGame() {
+            score = 0;
+            health = 100;
+            health1=100;
+            var player = { x: canvas.width / 2, y: canvas.height-100};
+            projectiles = [];
+            bots = [];
+            botProjectiles = [];
+  highscoreval=0;
+            let highscore = localStorage.getItem("highscore");
+if(highscore ===null){
+highscoreval = 0;
+localStorage.setItem("highscore",JSON.stringify(highscoreval));
+}
+else{
+highscoreval = JSON.parse(highscore);
+
+}
+
+            gameInterval = setInterval(draw, 10);
+            botInterval = setInterval(addBot, 2000);
+            projectileInterval = setInterval(addProjectile, 500);
+            botProjectileInterval = setInterval(addBotProjectile, 1500);
+           
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            clearInterval(botInterval);
+            clearInterval(projectileInterval);
+            clearInterval(botProjectileInterval);
+            alert("Game Over! Your score: " + score);
+            startGame();
+            health=100;
+            health1=100;
+            score=0;
+            projectiles = [];
+            bots = [];
+            botProjectiles = [];
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 100;
+        }
+
+        function addProjectile() {
+            projectiles.push({
+                x: player.x + player.width / 2,
+                y: player.y,
+            });
+        }
+
+        function addBot() {
+            var botWidth = 20;
+            var botHeight = 20;
+            var botX = Math.random() * (canvas.width - botWidth);
+            var botY = -botHeight;
+            bots.push({ x: botX, y: botY, width: botWidth, height: botHeight });
+            var robotWidth = 20;
+            var robotHeight = 20;
+            var robotX = Math.random() * (canvas.width - botWidth);
+            var robotY = -botHeight;
+            bots.push({ x: robotX, y: robotY, width: robotWidth, height: robotHeight });
+        }
+
+        function addBotProjectile() {
+            var k=Math.floor(Math.random() * bots.length);
+            var bot = bots[k];
+    
+            if (bot) {
+                botProjectiles.push({
+                    x: bot.x + bot.width / 2,
+                    y: bot.y + bot.height,
+                });
+            }
+            var p=Math.floor(Math.random() * bots.length);
+            var robot = bots[p];
+            if (robot&&p!=k) {
+                botProjectiles.push({
+                    x: robot.x + robot.width / 2,
+                    y: robot.y + robot.height,
+                });
+            }
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
